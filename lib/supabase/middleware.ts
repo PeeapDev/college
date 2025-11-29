@@ -6,9 +6,24 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
+  // Check if Supabase is configured
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // If Supabase is not configured, allow all routes (demo mode)
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase not configured - running in demo mode')
+    const hostname = request.headers.get('host') || ''
+    const subdomain = getSubdomain(hostname)
+    if (subdomain) {
+      supabaseResponse.headers.set('x-tenant-subdomain', subdomain)
+    }
+    return supabaseResponse
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {

@@ -1,15 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { GraduationCap, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { GraduationCap, Mail, Lock, Eye, EyeOff, Loader2, Building2, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { useTenantStore } from '@/lib/stores/tenant-store'
+import { useSubdomain } from '@/lib/hooks/use-subdomain'
+import { useTenant } from '@/lib/hooks/use-tenant'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -19,6 +22,14 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const router = useRouter()
   const { signIn } = useAuth()
+  const { setTenant } = useTenantStore()
+  const subdomain = useSubdomain()
+  const { tenant } = useTenant(subdomain || undefined)
+
+  // Persist tenant in store for the session
+  useEffect(() => {
+    if (tenant) setTenant(tenant)
+  }, [tenant, setTenant])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -135,6 +146,25 @@ export default function LoginPage() {
                 ) : (
                   'Sign In'
                 )}
+              </Button>
+
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white dark:bg-gray-900 px-2 text-gray-500">Or continue as {tenant?.name || 'Demo University'}</span>
+                </div>
+              </div>
+
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full"
+                onClick={() => router.push('/dashboard')}
+              >
+                <Building2 className="mr-2 h-4 w-4" />
+                Continue to {tenant?.name || 'Demo University'}
               </Button>
             </form>
 

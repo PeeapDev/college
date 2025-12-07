@@ -12,11 +12,15 @@ import {
   Bell,
   ArrowUpRight,
   MoreHorizontal,
+  Building2,
+  MapPin,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useSubdomain } from '@/lib/hooks/use-subdomain'
+import { useTenant } from '@/lib/hooks/use-tenant'
 
 const stats = [
   {
@@ -110,25 +114,63 @@ const upcomingEvents = [
 ]
 
 export default function DashboardPage() {
+  const subdomain = useSubdomain()
+  const { tenant } = useTenant(subdomain || undefined)
+
   return (
     <div className="space-y-8">
+      {/* Institution Banner */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-xl p-6 text-white"
+        style={{ 
+          background: `linear-gradient(135deg, ${tenant?.primary_color || '#1a56db'} 0%, ${tenant?.secondary_color || '#7c3aed'} 100%)` 
+        }}
+      >
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+              {tenant?.logo_url ? (
+                <img src={tenant.logo_url} alt={tenant.name} className="h-12 w-12 rounded" />
+              ) : (
+                <Building2 className="h-8 w-8 text-white" />
+              )}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">{tenant?.name || 'Institution'}</h1>
+              <div className="flex items-center gap-2 text-white/80 text-sm mt-1">
+                <MapPin className="h-4 w-4" />
+                <span>{tenant?.city || tenant?.country || 'Sierra Leone'}</span>
+                <Badge variant="secondary" className="bg-white/20 text-white border-0">
+                  {tenant?.type || 'UNIVERSITY'}
+                </Badge>
+                <Badge variant="secondary" className="bg-white/20 text-white border-0">
+                  {tenant?.subscription_plan || 'PROFESSIONAL'}
+                </Badge>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" className="bg-white/20 hover:bg-white/30 border-0 text-white">
+              <Calendar className="h-4 w-4 mr-2" />
+              Academic Calendar
+            </Button>
+            <Button variant="secondary" className="bg-white hover:bg-white/90 text-gray-900">
+              <Bell className="h-4 w-4 mr-2" />
+              Announcements
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h2>
           <p className="text-gray-500 dark:text-gray-400">
-            Welcome back! Here&apos;s what&apos;s happening at your institution.
+            Welcome back! Here&apos;s what&apos;s happening at {tenant?.name || 'your institution'}.
           </p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline">
-            <Calendar className="h-4 w-4 mr-2" />
-            Academic Calendar
-          </Button>
-          <Button>
-            <Bell className="h-4 w-4 mr-2" />
-            Announcements
-          </Button>
         </div>
       </div>
 

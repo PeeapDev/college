@@ -82,14 +82,31 @@ class SISClient {
   }
 
   /**
-   * Verify a certificate using the SIS blockchain
+   * Verify a certificate using the SIS blockchain (Solana)
    */
   async verifyCertificate(certificateNo: string): Promise<VerificationResult> {
     try {
-      const result = await this.request<VerificationResult>(
-        `/blockchain/verify?certificate=${certificateNo}`
-      )
-      return result
+      // First check if we have a blockchain record for this certificate
+      const result = await this.request<{
+        success: boolean
+        verified?: boolean
+        data?: {
+          verified: boolean
+          signature: string
+          recordData: any
+          explorerUrl: string
+        }
+        error?: string
+      }>(`/blockchain/verify?studentId=${certificateNo}`)
+
+      if (result.success && result.data) {
+        return {
+          valid: result.verified || false,
+          blockchainHash: result.data.signature,
+          verifiedAt: new Date().toISOString(),
+        }
+      }
+      return { valid: false, error: result.error }
     } catch (error) {
       return {
         valid: false,
@@ -99,17 +116,48 @@ class SISClient {
   }
 
   /**
-   * Store a certificate on the blockchain via SIS
+   * Store a certificate on the Solana blockchain via SIS
    */
   async storeCertificate(certificate: CertificateData): Promise<BlockchainRecord> {
-    return this.request<BlockchainRecord>('/blockchain/store', {
+    const result = await this.request<{
+      success: boolean
+      data: {
+        blockchainRecord: any
+        signature: string
+        slot: number
+        explorerUrl: string
+      }
+      error?: string
+    }>('/blockchain/store', {
       method: 'POST',
       body: JSON.stringify({
-        type: 'certificate',
-        data: certificate,
-        institutionId: this.config.institutionId,
+        studentId: certificate.studentId,
+        schoolId: this.config.institutionId,
+        recordType: 'CERTIFICATE',
+        recordData: {
+          certificateNo: certificate.certificateNo,
+          studentName: certificate.studentName,
+          program: certificate.program,
+          graduationYear: certificate.graduationYear,
+          classOfDegree: certificate.classOfDegree,
+          cgpa: certificate.cgpa,
+          issueDate: certificate.issueDate,
+          institutionName: certificate.institutionName,
+          institutionCode: certificate.institutionCode,
+        },
       }),
     })
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to store certificate')
+    }
+
+    return {
+      hash: result.data.blockchainRecord.dataHash,
+      transactionId: result.data.signature,
+      timestamp: new Date().toISOString(),
+      status: 'confirmed',
+    }
   }
 
   /**
@@ -161,24 +209,46 @@ class SISClient {
   }
 
   /**
-   * Get SIS connection status
+   * Get SIS connection status (Solana blockchain)
    */
   async getStatus(): Promise<{
     connected: boolean
+    blockchain?: {
+      type: string
+      network: string
+      walletAddress?: string
+      balance?: number
+    }
     lastSync?: string
     pendingRecords?: number
   }> {
     try {
       const result = await this.request<{
-        status: string
-        lastSync: string
-        pendingRecords: number
-      }>('/status')
+        success: boolean
+        data: {
+          blockchain: {
+            type: string
+            connected: boolean
+            network: string
+            currentSlot: number
+            walletAddress: string
+            balance: number
+          }
+          statistics: {
+            totalRecordsStored: number
+          }
+        }
+      }>('/blockchain/status')
 
       return {
-        connected: result.status === 'active',
-        lastSync: result.lastSync,
-        pendingRecords: result.pendingRecords,
+        connected: result.data.blockchain.connected,
+        blockchain: {
+          type: result.data.blockchain.type,
+          network: result.data.blockchain.network,
+          walletAddress: result.data.blockchain.walletAddress,
+          balance: result.data.blockchain.balance,
+        },
+        pendingRecords: result.data.statistics.totalRecordsStored,
       }
     } catch {
       return { connected: false }

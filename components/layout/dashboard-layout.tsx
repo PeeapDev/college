@@ -34,7 +34,8 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { useCurrentTenant } from '@/lib/hooks/use-tenant'
+import { useSubdomain } from '@/lib/hooks/use-subdomain'
+import { useTenant } from '@/lib/hooks/use-tenant'
 import { useAuth } from '@/lib/hooks/use-auth'
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -72,7 +73,8 @@ export function DashboardLayout({ children, navigation }: DashboardLayoutProps) 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
   const pathname = usePathname()
-  const { tenant } = useCurrentTenant()
+  const subdomain = useSubdomain()
+  const { tenant } = useTenant(subdomain || undefined)
   const { user, signOut } = useAuth()
 
   const toggleDarkMode = () => {
